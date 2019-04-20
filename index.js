@@ -22,11 +22,24 @@ const server = http.createServer((req, res) => {
   const query = url.parse(req.url, true).query;
   const id = url.parse(req.url, true).query.id;
 
+  // PRODUCT OVERVIEW
   if (pathName === '/products' || pathName === '/') {
     // http header บอกว่า data เป็นประเภทไหน (200,404)
     res.writeHead(200, { 'Content-type': 'text/html' });
+
+    fs.readFile(
+      `${__dirname}/templates/template-overview.html`,
+      'utf-8',
+      (err, data) => {
+        // Send to html
+        res.end(data);
+      }
+    );
+
     res.end('This is the PRODUCTS page!');
-  } else if (pathName === '/laptop' && id < laptopData.length) {
+  }
+  // LAPTOP DETAIL
+  else if (pathName === '/laptop' && id < laptopData.length) {
     res.writeHead(200, { 'Content-type': 'text/html' });
 
     fs.readFile(
@@ -34,19 +47,17 @@ const server = http.createServer((req, res) => {
       'utf-8',
       (err, data) => {
         const laptop = laptopData[id];
-        let output = data.replace(/{%PRODUCTNAME%}/g, laptop.productName); // เอาข้อมูลจาก JSON ไป replace ตาม templates
-        output = output.replace(/{%IMAGE%}/g, laptop.image);
-        output = output.replace(/{%PRICE%}/g, laptop.price);
-        output = output.replace(/{%SCREEN%}/g, laptop.screen);
-        output = output.replace(/{%CPU%}/g, laptop.cpu);
-        output = output.replace(/{%STORAGE%}/g, laptop.storage);
-        output = output.replace(/{%RAM%}/g, laptop.ram);
-        output = output.replace(/{%DESCRIPTION%}/g, laptop.description);
+
+        // Render HTML
+        const output = replaceTemplate(data, laptop);
+
         // Send to html
         res.end(output);
       }
     );
-  } else {
+  }
+  // LAPTOP NOT FOUND
+  else {
     res.writeHead(404, { 'Content-type': 'text/html' });
     res.end('URL was not found on the server');
   }
@@ -57,4 +68,15 @@ server.listen(1337, '127.0.0.1', () => {
   console.log('Listening for requests now');
 });
 
-// console.log(laptopData);
+function replaceTemplate(originalHTML, laptop) {
+  let output = originalHTML.replace(/{%PRODUCTNAME%}/g, laptop.productName); // เอาข้อมูลจาก JSON ไป replace ตาม templates
+  output = output.replace(/{%IMAGE%}/g, laptop.image);
+  output = output.replace(/{%PRICE%}/g, laptop.price);
+  output = output.replace(/{%SCREEN%}/g, laptop.screen);
+  output = output.replace(/{%CPU%}/g, laptop.cpu);
+  output = output.replace(/{%STORAGE%}/g, laptop.storage);
+  output = output.replace(/{%RAM%}/g, laptop.ram);
+  output = output.replace(/{%DESCRIPTION%}/g, laptop.description);
+  output = output.replace(/{%ID%}/g, laptop.id);
+  return output;
+}
