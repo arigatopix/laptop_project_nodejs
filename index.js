@@ -17,6 +17,7 @@ const server = http.createServer((req, res) => {
 
   // Routing url เพื่อเรียกหน้า page เปลี่ยนไปตาม pathname
   const pathName = url.parse(req.url, true).pathname;
+  console.log(pathName);
 
   // Query หรือดึงข้อมูลจาก database โดยใช้ url query
   const query = url.parse(req.url, true).query;
@@ -31,12 +32,26 @@ const server = http.createServer((req, res) => {
       `${__dirname}/templates/template-overview.html`,
       'utf-8',
       (err, data) => {
-        // Send to html
-        res.end(data);
+        let overviewOutput = data;
+        // Create Card
+        fs.readFile(
+          `${__dirname}/templates/template-card.html`,
+          'utf-8',
+          (err, data) => {
+            // loop by laptopdata ได้ array ใหม่ แล้วไปสร้าง card
+            const cardsOutput = laptopData
+              .map(el => replaceTemplate(data, el))
+              .join('');
+
+            // render template
+            overviewOutput = overviewOutput.replace('{%CARDS%}', cardsOutput);
+
+            // Send to html
+            res.end(overviewOutput);
+          }
+        );
       }
     );
-
-    res.end('This is the PRODUCTS page!');
   }
   // LAPTOP DETAIL
   else if (pathName === '/laptop' && id < laptopData.length) {
@@ -46,6 +61,7 @@ const server = http.createServer((req, res) => {
       `${__dirname}/templates/template-laptop.html`,
       'utf-8',
       (err, data) => {
+        // data มาจาก templates {% . . . %} แล้ว replace ด้วยข้อมูล JSON file
         const laptop = laptopData[id];
 
         // Render HTML
@@ -55,6 +71,15 @@ const server = http.createServer((req, res) => {
         res.end(output);
       }
     );
+  }
+  // IMAGES ต้องให้เป็น response data เพราะ node ออกแบบมาให้ request response ไม่ใช่เป็น direction folder
+  else if (/\.(jpg|jpeg|png|gif)$/i.test(pathName)) {
+    // ReqEx เช็คว่า match กับ pathname มั้ย
+    fs.readFile(`${__dirname}/data/img${pathName}`, (err, data) => {
+      res.writeHead(200, { 'Content-type': 'image/jpg' });
+      res.end(data);
+    });
+    // pathName ของ img /huawei-matebook-pro.jpg
   }
   // LAPTOP NOT FOUND
   else {
@@ -71,6 +96,7 @@ server.listen(1337, '127.0.0.1', () => {
 function replaceTemplate(originalHTML, laptop) {
   let output = originalHTML.replace(/{%PRODUCTNAME%}/g, laptop.productName); // เอาข้อมูลจาก JSON ไป replace ตาม templates
   output = output.replace(/{%IMAGE%}/g, laptop.image);
+  // รูปจะยังไม่แสดงเพราะว่า nodejs ต้องการ request กับ response
   output = output.replace(/{%PRICE%}/g, laptop.price);
   output = output.replace(/{%SCREEN%}/g, laptop.screen);
   output = output.replace(/{%CPU%}/g, laptop.cpu);
